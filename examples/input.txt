@@ -2,15 +2,15 @@
 # The input for GenTBL is a space separated file with 4 columns,
 #  comments "#" and blank lines are ignored.
 #
+#
 # chain active passive partner
 #
 # A 10,11 20 2
 # B 50 60,70 1
 # C 100,110 120 1
-# D 150   1
 #==============================================================================
+
 A 10,11 20 2
 B 50 60,70 1
-C 100,110 120 4
-D 150   2
+C 100,110 120 1
 

@@ -7,7 +7,7 @@ import (
 
 func TestReadFile(t *testing.T) {
 	// Read the file
-	s := readFile("examples/input.txt")
+	s := readFile("test/input_test.txt")
 	// Check the number of lines
 	if len(s) != 3 {
 		t.Errorf("Expected 3 lines, got %d", len(s))
