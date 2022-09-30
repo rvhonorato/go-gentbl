@@ -3,79 +3,99 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
-	"math"
 	"os"
 	"strconv"
 	"strings"
 )
 
-// Check for errors
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
+// Main function
 func main() {
-	lines := readFile("examples/input.txt")
-	GenTBL(lines)
+	inputfile := os.Args[1]
+	lines := readFile(inputfile)
+	fmt.Println(GenTBL(lines))
 }
 
-// ----
-// 1 A 10,20,30 11 2
-// 2 B 100,200,300  1
-// ----
 // Read the input file and return a slice of strings
 func readFile(p string) []string {
 	f, err := os.Open(p)
-	check(err)
+	if err != nil {
+		panic(err)
+	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
 
 	var lines []string
 	for scanner.Scan() {
-		// fmt.Println(scanner.Text())
 		lines = append(lines, scanner.Text())
 	}
-	return lines
+
+	return cleanLines(lines)
 }
 
-// Generate the TBL file
-func GenTBL(s []string) {
+// Skip comments and empty lines
+func cleanLines(s []string) []string {
+	commentPrefix := "#"
+	var cleanLines []string
+	for _, l := range s {
+		if !strings.HasPrefix(l, commentPrefix) && l != "" {
+			cleanLines = append(cleanLines, l)
+		}
+	}
+	return cleanLines
+}
+
+// Parse the input array and return a map of restraints
+func parseInput(s []string) (map[int][]string, map[int][]string, map[int]string) {
 	actM := make(map[int][]string)
 	pasM := make(map[int][]string)
 	cM := make(map[int]string)
-	for _, l := range s {
+	for id, l := range s {
 		words := strings.Split(l, " ")
-		id, _ := strconv.Atoi(words[0])
-		chain := words[1]
-		act := strings.Split(words[2], ",")
-		pas := strings.Split(words[3], ",")
-		actM[id] = act
-		pasM[id] = pas
-		cM[id] = chain
+		chain := words[0]
+		act := strings.Split(words[1], ",")
+		pas := strings.Split(words[2], ",")
+		actM[id+1] = act
+		pasM[id+1] = pas
+		cM[id+1] = chain
 	}
+	return actM, pasM, cM
 
-	for _, l := range s {
+}
+
+// Generate the TBL file
+func GenTBL(s []string) string {
+	actM, pasM, cM := parseInput(s)
+
+	var result string
+	for id, l := range cleanLines(s) {
+		idA := id + 1
+		var tbl string
+
+		// Put a nice header at the top
+		if id == 0 {
+			tbl = "! HADDOCK AIR restraints\n"
+			tbl += header(idA)
+		} else {
+			tbl = header(idA)
+		}
 		words := strings.Split(l, " ")
-		idA, _ := strconv.Atoi(words[0])
-		actA := strings.Split(words[2], ",")
+
+		actA := strings.Split(words[1], ",")
 		chainA := cM[idA]
-		partners := strings.Split(words[4], ",")
-		tbl := header(idA)
+		partners := strings.Split(words[3], ",")
+
 		for _, a := range actA {
 			if a == "" {
 				break
 			}
 
 			passive := make([]string, 0)
-
+			appendComment := false
 			for _, p := range partners {
 				pident, _ := strconv.Atoi(p)
 
 				if pident == idA {
-					log.Fatal("Self-restraint not possible")
+					appendComment = true
 				}
 
 				chainB := cM[pident]
@@ -101,14 +121,16 @@ func GenTBL(s []string) {
 
 			resA, _ := strconv.Atoi(a)
 
-			tbl += formatTBL(resA, chainA, passive)
+			tbl += formatTBL(resA, chainA, passive, appendComment)
 		}
-		fmt.Println(tbl)
+		// fmt.Println(tbl)
+		result += tbl
 	}
+	return result
 }
 
 // Put the restraints in the CNS format
-func formatTBL(actR int, actC string, pa []string) string {
+func formatTBL(actR int, actC string, pa []string, comment bool) string {
 	str := fmt.Sprintf("assign ( resid %d and segid %s)\n", actR, actC)
 	str += "       (\n"
 	for i, p := range pa {
@@ -120,10 +142,25 @@ func formatTBL(actR int, actC string, pa []string) string {
 			// last one
 			str += "     or\n"
 		} else {
-			str += "       )  2.0 2.0 0.0\n\n\n"
+			str += "       )  2.0 2.0 0.0\n\n"
 		}
 	}
+	if comment {
+		str = addComments(str)
+	}
 	return str
+}
+
+// Add comments to a string
+func addComments(str string) string {
+	nStr := strings.Repeat("!", 42) + "\n"
+	nStr += "!!! Self-restraint not allowed !!!\n"
+	nStr += strings.Repeat("!", 42) + "\n"
+	for _, l := range strings.Split(str, "\n") {
+		nStr += fmt.Sprintf("! %s\n", l)
+	}
+	nStr += strings.Repeat("!", 42) + "\n"
+	return nStr
 }
 
 // Format the header for a selection
@@ -149,11 +186,6 @@ func getSuffix(id int) string {
 // Get the last digit of a number
 func lastDigit(num int) int {
 	n := strconv.FormatInt(int64(num), 10)
-	place, _ := strconv.Atoi(n[:len(n)-1])
-	if place == 0 {
-		return num
-	} else {
-		r := num % int(math.Pow(10, float64(place)))
-		return r / int(math.Pow(10, float64(place-1)))
-	}
+	place, _ := strconv.Atoi(n[len(n)-1:])
+	return place
 }
