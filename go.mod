@@ -1,3 +1,3 @@
-module go-gentbl
+module gentbl
 
 go 1.19
