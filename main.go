@@ -1,3 +1,4 @@
+// Generate a TBL file to be used as restraints in HADDOCK
 package main
 
 import (
@@ -62,7 +63,7 @@ func parseInput(s []string) (map[int][]string, map[int][]string, map[int]string)
 
 }
 
-// Generate the TBL file
+// GenTBL generates the TBL file
 func GenTBL(s []string) string {
 	actM, pasM, cM := parseInput(s)
 
